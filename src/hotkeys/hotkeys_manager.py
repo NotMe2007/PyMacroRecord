@@ -50,34 +50,37 @@ class HotkeysManager:
         userSettings = self.settings.settings_dict
         if self.changeKey:
             keyPressed = getKeyPressed(self.keyboard_listener, key)
-            if keyPressed not in self.hotkeys:
-                if ">" in keyPressed:
+            if keyPressed is not None and keyPressed not in self.hotkeys:
+                if isinstance(keyPressed, str) and ">" in keyPressed:
                     try:
                         keyPressed = vk_nb[keyPressed]
-                    except:
+                    except Exception:
                         pass
                 self.hotkeys.append(keyPressed)
-                keyPressed = (
-                    keyPressed.replace("Key.", "")
-                    .replace("_l", "")
-                    .replace("_r", "")
-                    .replace("_gr", "")
-                )
-                self.hotkey_visible.append(keyPressed.upper())
-            self.hotkey_button.configure(text=self.hotkey_visible)
-
-            if all(keyword not in keyPressed for keyword in ["ctrl", "alt", "shift", 'cmd']):
-                if (
-                    self.type_of_hotkey == "Record_Start"
-                    and userSettings["Hotkeys"]["Playback_Start"] == self.hotkeys
-                    or self.type_of_hotkey == "Playback_Start"
-                    and userSettings["Hotkeys"]["Record_Start"] == self.hotkeys
-                ):
-                    messagebox.showerror(
-                        self.main_app.text_content["global"]["error"],
-                        self.main_app.text_content["options_menu"]["settings_menu"]["hotkeys_settings"]["error_hotkeys"],
+                if isinstance(keyPressed, str):
+                    keyPressedStr = (
+                        keyPressed.replace("Key.", "")
+                        .replace("_l", "")
+                        .replace("_r", "")
+                        .replace("_gr", "")
                     )
-                    self.entry_to_change.configure(text=self.main_app.text_content["options_menu"]["settings_menu"]["hotkeys_settings"]["please_key_text"])
+                    self.hotkey_visible.append(keyPressedStr.upper())
+                else:
+                    self.hotkey_visible.append(str(keyPressed).upper())
+            if self.hotkey_button is not None:
+                self.hotkey_button.configure(text=self.hotkey_visible)
+
+            if keyPressed is not None and all(keyword not in keyPressed for keyword in ["ctrl", "alt", "shift", 'cmd']):
+                if (
+                    (self.type_of_hotkey == "Record_Start" and userSettings["Hotkeys"]["Playback_Start"] == self.hotkeys)
+                    or (self.type_of_hotkey == "Playback_Start" and userSettings["Hotkeys"]["Record_Start"] == self.hotkeys)
+                ):
+                    if self.entry_to_change is not None:
+                        messagebox.showerror(
+                            self.main_app.text_content["global"]["error"],
+                            self.main_app.text_content["options_menu"]["settings_menu"]["hotkeys_settings"]["error_hotkeys"],
+                        )
+                        self.entry_to_change.configure(text=self.main_app.text_content["options_menu"]["settings_menu"]["hotkeys_settings"]["please_key_text"])
                     self.hotkeys = []
                     self.hotkey_visible = []
                     return
@@ -90,49 +93,50 @@ class HotkeysManager:
 
         if self.changeKey == False and self.main_app.prevent_record == False:
             keyPressed = getKeyPressed(self.keyboard_listener, key)
-            if ">" in keyPressed:
-                try:
-                    keyPressed = vk_nb[keyPressed]
-                except:
-                    pass
+            if keyPressed is not None:
+                if isinstance(keyPressed, str) and ">" in keyPressed:
+                    try:
+                        keyPressed = vk_nb[keyPressed]
+                    except Exception:
+                        pass
 
-            for keys in userSettings["Hotkeys"]:
-                if not userSettings["Hotkeys"][keys]:
-                    userSettings["Hotkeys"][keys] = ""
+                for keys in userSettings["Hotkeys"]:
+                    if not userSettings["Hotkeys"][keys]:
+                        userSettings["Hotkeys"][keys] = ""
 
-            if keyPressed not in self.hotkey_detection:
-                self.hotkey_detection.append(keyPressed)
+                if keyPressed not in self.hotkey_detection:
+                    self.hotkey_detection.append(keyPressed)
 
-            by_hotkey = True
+                by_hotkey = True
 
-            if (
-                    self.__is_hotkey_triggered(userSettings["Hotkeys"]["Record_Start"], self.hotkey_detection)
-                    and self.macro.record == False
-                    and self.macro.playback == False
-            ):
-                self.macro.start_record(by_hotkey)
+                if (
+                        self.__is_hotkey_triggered(userSettings["Hotkeys"]["Record_Start"], self.hotkey_detection)
+                        and self.macro.record == False
+                        and self.macro.playback == False
+                ):
+                    self.macro.start_record(by_hotkey)
 
-            elif (
-                    self.__is_hotkey_triggered(userSettings["Hotkeys"]["Record_Stop"], self.hotkey_detection)
-                    and self.macro.record == True
-                    and self.macro.playback == False
-            ):
-                self.macro.stop_record()
+                elif (
+                        self.__is_hotkey_triggered(userSettings["Hotkeys"]["Record_Stop"], self.hotkey_detection)
+                        and self.macro.record == True
+                        and self.macro.playback == False
+                ):
+                    self.macro.stop_record()
 
-            elif (
-                    self.__is_hotkey_triggered(userSettings["Hotkeys"]["Playback_Start"], self.hotkey_detection)
-                    and self.macro.record == False
-                    and self.macro.playback == False
-                    and self.main_app.macro_recorded == True
-            ):
-                self.macro.start_playback()
+                elif (
+                        self.__is_hotkey_triggered(userSettings["Hotkeys"]["Playback_Start"], self.hotkey_detection)
+                        and self.macro.record == False
+                        and self.macro.playback == False
+                        and self.main_app.macro_recorded == True
+                ):
+                    self.macro.start_playback()
 
-            elif (
-                    self.__is_hotkey_triggered(userSettings["Hotkeys"]["Playback_Stop"], self.hotkey_detection)
-                    and self.macro.record == False
-                    and self.macro.playback == True
-            ):
-                self.macro.stop_playback(by_hotkey)
+                elif (
+                        self.__is_hotkey_triggered(userSettings["Hotkeys"]["Playback_Stop"], self.hotkey_detection)
+                        and self.macro.record == False
+                        and self.macro.playback == True
+                ):
+                    self.macro.stop_playback(by_hotkey)
 
     def __on_release(self, key):
         if len(self.hotkey_detection) != 0:

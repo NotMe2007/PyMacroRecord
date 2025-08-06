@@ -3,7 +3,8 @@ from os import getlogin, system
 from sys import platform
 from threading import Thread
 from time import time, sleep
-from tkinter import *
+from tkinter import Tk, Label, Frame, Button, PhotoImage, SUNKEN, W, BOTTOM, X, BOTH, LEFT, RIGHT, DISABLED, NORMAL
+from tkinter import messagebox
 from tkinter import messagebox
 from pynput.keyboard import Key # FUTURE SELF: DON'T REMOVE THIS!!
 from pynput import mouse, keyboard
@@ -102,7 +103,7 @@ class Macro:
             return
         userSettings = self.user_settings.settings_dict
         self.record = False
-        if self.mouseBeingListened:
+        if self.mouseBeingListened and self.mouse_listener is not None and hasattr(self.mouse_listener, 'stop'):
             self.mouse_listener.stop()
             self.mouseBeingListened = False
         if self.keyboardBeingListened:
@@ -221,10 +222,14 @@ class Macro:
                 if userSettings["Others"]["Fixed_timestamp"] > 0:
                     timeSleep = userSettings["Others"]["Fixed_timestamp"]
                 else:
-                    timeSleep = (
+                    event_type = self.macro_events["events"][events]["type"]
+                    if event_type == "leftClickEvent":
+                        timeSleep = 0
+                    else:
+                        timeSleep = (
                             self.macro_events["events"][events]["timestamp"]
                             * (1 / userSettings["Playback"]["Speed"])
-                    )
+                        )
                 if timeSleep < 0:
                     timeSleep = abs(timeSleep)
                 sleep(timeSleep)
@@ -241,10 +246,9 @@ class Macro:
                         self.macro_events["events"][events]["x"],
                         self.macro_events["events"][events]["y"],
                     )
-                    if self.macro_events["events"][events]["pressed"]:
-                        self.mouseControl.press(click_func[event_type])
-                    else:
-                        self.mouseControl.release(click_func[event_type])
+                    # Always perform a full click: press then release
+                    self.mouseControl.press(click_func[event_type])
+                    self.mouseControl.release(click_func[event_type])
 
                 elif event_type == "scrollEvent":
                     self.mouseControl.scroll(
@@ -375,24 +379,25 @@ class Macro:
             self.main_app.status_text.configure(text=f"cursorMove {x} {y}")
 
     def __on_click(self, x, y, button, pressed):
-        self.__get_event_delta_time()
-        button_event = "unknownButtonClickEvent"
-        if button == Button.left:
-            button_event = "leftClickEvent"
-        elif button == Button.right:
-            button_event = "rightClickEvent"
-        elif button == Button.middle:
-            button_event = "middleClickEvent"
-        self.__record_event(
-            {
-                "type": button_event,
-                "x": x,
-                "y": y,
-                "pressed": pressed
-            }
-        )
-        if self.showEventsOnStatusBar:
-            self.main_app.status_text.configure(text=f"{button_event} {x} {y} {pressed}")
+        if pressed:
+            self.__get_event_delta_time()
+            button_event = "unknownButtonClickEvent"
+            if button == Button.left:
+                button_event = "leftClickEvent"
+            elif button == Button.right:
+                button_event = "rightClickEvent"
+            elif button == Button.middle:
+                button_event = "middleClickEvent"
+            self.__record_event(
+                {
+                    "type": button_event,
+                    "x": x,
+                    "y": y,
+                    "pressed": pressed
+                }
+            )
+            if self.showEventsOnStatusBar:
+                self.main_app.status_text.configure(text=f"{button_event} {x} {y} {pressed}")
 
     def __on_scroll(self, x, y, dx, dy):
         self.__get_event_delta_time()

@@ -6,7 +6,7 @@ from os import path
 from sys import platform, argv
 from threading import Thread
 from time import time
-from tkinter import *
+from tkinter import Tk, Label, Frame, Button, PhotoImage, SUNKEN, W, BOTTOM, X, BOTH, LEFT, RIGHT, DISABLED, NORMAL
 
 from PIL import Image
 from pystray import Icon
@@ -25,7 +25,7 @@ from windows.others.new_ver_avalaible import NewVerAvailable
 from windows.window import Window
 
 if platform.lower() == "win32":
-    from tkinter.ttk import *
+    from tkinter.ttk import Style
 
 def deepcopy_dict_missing_entries(dst:dict,src:dict):
 # recursively copy entries that are in src but not in dst
@@ -42,7 +42,7 @@ class MainApp(Window):
         super().__init__("PyMacroRecord", 350, 200)
         self.attributes("-topmost", 1)
         if platform == "win32":
-            self.iconbitmap(resource_path(path.join("assets", "logo.ico")))
+            self.iconbitmap(resource_path(path.join("src", "assets", "logo.ico")))
 
         self.settings = UserSettings(self)
 
@@ -70,7 +70,7 @@ class MainApp(Window):
         # Main Buttons (Start record, stop record, start playback, stop playback)
 
         # Play Button
-        self.playImg = PhotoImage(file=resource_path(path.join("assets", "button", "play.png")))
+        self.playImg = PhotoImage(file=resource_path(path.join("src", "assets", "button", "play.png")))
 
         self.center_frame = Frame(self)
         self.center_frame.pack(expand=True, fill=BOTH)
@@ -88,12 +88,12 @@ class MainApp(Window):
         self.playBtn.pack(side=LEFT, padx=50)
 
         # Record Button
-        self.recordImg = PhotoImage(file=resource_path(path.join("assets", "button", "record.png")))
+        self.recordImg = PhotoImage(file=resource_path(path.join("src", "assets", "button", "record.png")))
         self.recordBtn = Button(self.center_frame, image=self.recordImg, command=self.macro.start_record)
         self.recordBtn.pack(side=RIGHT, padx=50)
 
         # Stop Button
-        self.stopImg = PhotoImage(file=resource_path(path.join("assets", "button", "stop.png")))
+        self.stopImg = PhotoImage(file=resource_path(path.join("src", "assets", "button", "stop.png")))
 
         record_management = RecordFileManagement(self, self.menu)
 
@@ -119,18 +119,18 @@ class MainApp(Window):
 
     def load_language(self):
         self.lang = self.settings.settings_dict["Language"]
-        with open(resource_path(path.join('langs', self.lang + '.json')), encoding='utf-8') as f:
+        with open(resource_path(path.join('src', 'langs', self.lang + '.json')), encoding='utf-8') as f:
             self.text_content = json.load(f)
         self.text_content = self.text_content["content"]
 
         if self.lang != "en":
-            with open(resource_path(path.join('langs', 'en.json')), encoding='utf-8') as f:
+            with open(resource_path(path.join('src', 'langs', 'en.json')), encoding='utf-8') as f:
                 en = json.load(f)
             deepcopy_dict_missing_entries(self.text_content, en["content"])
 
     def systemTray(self):
         """Just to show little icon on system tray"""
-        image = Image.open(resource_path(path.join("assets", "logo.ico")))
+        image = Image.open(resource_path(path.join("src", "assets", "logo.ico")))
         menu = (
             MenuItem('Show', action=self.deiconify, default=True),
         )
