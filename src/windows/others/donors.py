@@ -21,7 +21,7 @@ class Donors(Popup):
 
         donors_link = 'https://pymacrorecord.com/donors.txt'
         try:
-            response = requests.get(donors_link)
+            response = requests.get(donors_link, timeout=5)
             self.donors_list = response.text.split(';')
             self.donors_list.reverse()
         except RequestException:

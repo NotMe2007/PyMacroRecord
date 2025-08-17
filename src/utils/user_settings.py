@@ -12,7 +12,10 @@ class UserSettings:
         self.main_app = main_app
 
         if platform == "win32":
-            self.path_setting = path.join(getenv("LOCALAPPDATA"), "PyMacroRecord")
+            # getenv may return None in some environments; fall back to the
+            # user's home directory to avoid passing None to path.join.
+            local_appdata = getenv("LOCALAPPDATA") or path.expanduser("~")
+            self.path_setting = path.join(local_appdata, "PyMacroRecord")
         elif "linux" in platform.lower():
             self.path_setting = path.join(path.expanduser("~"), ".config", "PyMacroRecord")
         elif "darwin" in platform.lower():
@@ -53,6 +56,12 @@ class UserSettings:
                 "Mouse_Click": True,
                 "Keyboard": True,
                 "Show_Events_On_Status_Bar": False,
+                # Optional high-frequency sampling for mouse movement. When enabled,
+                # instead of relying purely on listener callbacks, the app will poll
+                # the mouse position at this FPS and record changes. Default is
+                # disabled to preserve original behavior.
+                "Mouse_Sampling_Enabled": False,
+                "Mouse_Sampling_FPS": 120,
             },
 
             "Saving": {
@@ -95,17 +104,17 @@ class UserSettings:
         }
 
         userSettings_json = dumps(userSettings, indent=4)
-        with open(self.user_setting, "w") as settingFile:
+        with open(self.user_setting, "w", encoding="utf-8") as settingFile:
             settingFile.write(userSettings_json)
 
     def __get_config(self):
         """Get settings of users"""
-        with open(self.user_setting, "r") as settingFile:
+        with open(self.user_setting, "r", encoding="utf-8") as settingFile:
             settingFile_json = load(settingFile)
         return settingFile_json
 
     def update_settings(self):
-        with open(self.user_setting, "w") as settingFile:
+        with open(self.user_setting, "w", encoding="utf-8") as settingFile:
             settingFile.write(dumps(self.settings_dict, indent=4))
 
     def reset_settings(self):

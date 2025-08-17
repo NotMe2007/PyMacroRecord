@@ -34,12 +34,16 @@ class Macro:
         self.keyboardBeingListened = None
         self.keyboard_listener = None
         self.mouse_listener = None
+        # Sampler for high-FPS mouse recording
+        self._mouse_sampler_thread = None
+        self._mouse_sampler_running = False
+        self._last_sampled_pos = None
         self.time = time()
-        self.event_delta_time=0
+        self.event_delta_time = 0
 
         self.keyboard_listener = keyboard.Listener(
-                on_press=self.__on_press, on_release=self.__on_release
-            )
+            on_press=self.__on_press, on_release=self.__on_release
+        )
         self.keyboard_listener.start()
 
     def start_record(self, by_hotkey=False):
@@ -83,6 +87,36 @@ class Macro:
             self.mouseBeingListened = True
         if userSettings["Recordings"]["Keyboard"]:
             self.keyboardBeingListened = True
+        # Start mouse sampler if enabled in settings. Sampler polls mouse position
+        # at configured FPS and records cursorMove events when position changes.
+        try:
+            if userSettings["Recordings"].get("Mouse_Sampling_Enabled", False):
+                fps = int(userSettings["Recordings"].get("Mouse_Sampling_FPS", 120))
+                if fps <= 0:
+                    fps = 120
+                self._mouse_sampler_running = True
+                self._last_sampled_pos = None
+                def _sampler():
+                    interval = 1.0 / fps
+                    while self._mouse_sampler_running and self.record:
+                        try:
+                            pos = self.mouseControl.position
+                        except Exception:
+                            pos = None
+                        if pos is not None:
+                            if self._last_sampled_pos != pos:
+                                x, y = pos
+                                self.__get_event_delta_time()
+                                self.__record_event({"type": "cursorMove", "x": x, "y": y})
+                                self._last_sampled_pos = pos
+                                if self.showEventsOnStatusBar:
+                                    self.main_app.status_text.configure(text=f"cursorMove {x} {y}")
+                        sleep(interval)
+                self._mouse_sampler_thread = Thread(target=_sampler, daemon=True)
+                self._mouse_sampler_thread.start()
+        except Exception:
+            # If sampler can't start, fall back to listener-based recording
+            self._mouse_sampler_running = False
         self.main_menu.file_menu.entryconfig(self.main_app.text_content["file_menu"]["load_text"], state=DISABLED)
         self.main_app.recordBtn.configure(
             image=self.main_app.stopImg, command=self.stop_record
@@ -102,6 +136,15 @@ class Macro:
             return
         userSettings = self.user_settings.settings_dict
         self.record = False
+        # Stop sampler if running
+        try:
+            if getattr(self, '_mouse_sampler_running', False):
+                self._mouse_sampler_running = False
+                # thread is daemon; no join required, but clear reference
+                self._mouse_sampler_thread = None
+                self._last_sampled_pos = None
+        except Exception:
+            pass
         if self.mouseBeingListened and self.mouse_listener is not None and hasattr(self.mouse_listener, 'stop'):
             self.mouse_listener.stop()
             self.mouseBeingListened = False
@@ -282,7 +325,7 @@ class Macro:
                                 if ">" in keyToPress:
                                     try:
                                         keyToPress = vk_nb[keyToPress]
-                                    except:
+                                    except Exception:
                                         keyToPress = None
                             if self.playback:
                                 if keyToPress is not None:

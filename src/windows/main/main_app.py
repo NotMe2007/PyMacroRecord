@@ -77,7 +77,7 @@ class MainApp(Window):
 
         # Import record if opened with .pmr extension
         if len(argv) > 1:
-            with open(sys.argv[1], 'r') as record:
+            with open(sys.argv[1], 'r', encoding='utf-8') as record:
                 loaded_content = load(record)
             self.macro.import_record(loaded_content)
             self.playBtn = Button(self.center_frame, image=self.playImg, command=self.macro.start_playback)
