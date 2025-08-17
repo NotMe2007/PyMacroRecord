@@ -222,14 +222,14 @@ class Macro:
                 if userSettings["Others"]["Fixed_timestamp"] > 0:
                     timeSleep = userSettings["Others"]["Fixed_timestamp"]
                 else:
-                    event_type = self.macro_events["events"][events]["type"]
-                    if event_type == "leftClickEvent":
-                        timeSleep = 0
-                    else:
-                        timeSleep = (
-                            self.macro_events["events"][events]["timestamp"]
-                            * (1 / userSettings["Playback"]["Speed"])
-                        )
+                    # Use the recorded delta timestamp for every event. Older behaviour
+                    # treated leftClickEvent specially (no delay) which caused timing
+                    # issues and prevented faithful replay. Use the recorded timestamp
+                    # scaled by playback speed for all events.
+                    timeSleep = (
+                        self.macro_events["events"][events]["timestamp"]
+                        * (1 / userSettings["Playback"]["Speed"])
+                    )
                 if timeSleep < 0:
                     timeSleep = abs(timeSleep)
                 sleep(timeSleep)
@@ -246,9 +246,25 @@ class Macro:
                         self.macro_events["events"][events]["x"],
                         self.macro_events["events"][events]["y"],
                     )
-                    # Always perform a full click: press then release
-                    self.mouseControl.press(click_func[event_type])
-                    self.mouseControl.release(click_func[event_type])
+                    # Prefer to respect the recorded 'pressed' state (press or release).
+                    # This allows recording both press and release separately and replaying
+                    # them faithfully. For legacy records that may not include 'pressed',
+                    # fall back to a full click (press+release) to preserve previous behaviour.
+                    evt = self.macro_events["events"][events]
+                    if "pressed" in evt:
+                        try:
+                            if evt["pressed"]:
+                                self.mouseControl.press(click_func[event_type])
+                            else:
+                                self.mouseControl.release(click_func[event_type])
+                        except Exception:
+                            # In case of any issue with press/release, fall back to full click
+                            self.mouseControl.press(click_func[event_type])
+                            self.mouseControl.release(click_func[event_type])
+                    else:
+                        # Legacy: perform a full click
+                        self.mouseControl.press(click_func[event_type])
+                        self.mouseControl.release(click_func[event_type])
 
                 elif event_type == "scrollEvent":
                     self.mouseControl.scroll(
@@ -379,25 +395,26 @@ class Macro:
             self.main_app.status_text.configure(text=f"cursorMove {x} {y}")
 
     def __on_click(self, x, y, button, pressed):
-        if pressed:
-            self.__get_event_delta_time()
-            button_event = "unknownButtonClickEvent"
-            if button == Button.left:
-                button_event = "leftClickEvent"
-            elif button == Button.right:
-                button_event = "rightClickEvent"
-            elif button == Button.middle:
-                button_event = "middleClickEvent"
-            self.__record_event(
-                {
-                    "type": button_event,
-                    "x": x,
-                    "y": y,
-                    "pressed": pressed
-                }
-            )
-            if self.showEventsOnStatusBar:
-                self.main_app.status_text.configure(text=f"{button_event} {x} {y} {pressed}")
+        # Record both press and release so playback can faithfully reproduce click actions.
+        self.__get_event_delta_time()
+        button_event = "unknownButtonClickEvent"
+        if button == Button.left:
+            button_event = "leftClickEvent"
+        elif button == Button.right:
+            button_event = "rightClickEvent"
+        elif button == Button.middle:
+            button_event = "middleClickEvent"
+        self.__record_event(
+            {
+                "type": button_event,
+                "x": x,
+                "y": y,
+                "pressed": pressed
+            }
+        )
+        if self.showEventsOnStatusBar:
+            state = "pressed" if pressed else "released"
+            self.main_app.status_text.configure(text=f"{button_event} {x} {y} {state}")
 
     def __on_scroll(self, x, y, dx, dy):
         self.__get_event_delta_time()
