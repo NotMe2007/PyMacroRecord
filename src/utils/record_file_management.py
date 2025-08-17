@@ -1,7 +1,6 @@
 from json import load, dumps
-from tkinter import *
-from tkinter import filedialog
-from tkinter import messagebox
+from tkinter import NORMAL, DISABLED
+from tkinter import filedialog, messagebox
 
 from utils import UserSettings
 from utils.warning_pop_up_save import confirm_save
@@ -33,7 +32,7 @@ class RecordFileManagement:
         if not self.main_app.macro_recorded or self.main_app.macro.playback:
             return
         if self.main_app.current_file is not None:
-            with open(self.main_app.current_file, "w") as current_file:
+            with open(self.main_app.current_file, "w", encoding="utf-8") as current_file:
                 compactJson = UserSettings(self.main_app).settings_dict["Saving"]["Compact_json"]
                 userSettings = self.main_app.settings.settings_dict
                 macroSettings = {"settings": {
@@ -82,7 +81,7 @@ class RecordFileManagement:
                 self.config_text["file_menu"]["new_text"], state=NORMAL, command=self.new_macro
             )
             macroFile.close()
-            with open(macroFile.name, "r") as macroContent:
+            with open(macroFile.name, "r", encoding="utf-8") as macroContent:
                 self.main_app.macro.import_record(load(macroContent))
             self.main_app.macro_recorded = True
             self.main_app.macro_saved = True

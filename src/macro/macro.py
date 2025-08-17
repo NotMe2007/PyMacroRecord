@@ -5,7 +5,6 @@ from threading import Thread
 from time import time, sleep
 from tkinter import Tk, Label, Frame, Button, PhotoImage, SUNKEN, W, BOTTOM, X, BOTH, LEFT, RIGHT, DISABLED, NORMAL
 from tkinter import messagebox
-from tkinter import messagebox
 from pynput.keyboard import Key # FUTURE SELF: DON'T REMOVE THIS!!
 from pynput import mouse, keyboard
 from pynput.mouse import Button

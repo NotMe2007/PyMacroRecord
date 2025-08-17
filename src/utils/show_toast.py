@@ -5,14 +5,15 @@ from utils.get_file import resource_path
 
 try:
     from win10toast import ToastNotifier
-except Exception:
-    print("Not on windows. win10toast not imported.")
+except ImportError:
+    # Not on Windows or package not available
+    ToastNotifier = None
 
 
 def show_notification_minim(main_app):
     if platform == "win32":
-        from win10toast import ToastNotifier
-
+        if ToastNotifier is None:
+            return
         toast = ToastNotifier()
         try:
             toast.show_toast(
@@ -21,8 +22,9 @@ def show_notification_minim(main_app):
                 duration=3,
                 icon_path=resource_path(path.join("assets", "logo.ico"))
             )
-        except:
-            pass
+        except Exception:
+            # Toast display failed; continue without crashing
+            return
 
     elif "linux" in platform.lower():
         system(f"""notify-send -u normal "PyMacroRecord" "{main_app.text_content["options_menu"]["settings_menu"]["minimization_toast"]}" """)

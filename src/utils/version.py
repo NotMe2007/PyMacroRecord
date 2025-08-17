@@ -15,7 +15,7 @@ class Version:
         api_url = f'https://api.github.com/repos/LOUDO56/PyMacroRecord/releases/latest'
 
         try:
-            response = requests.get(api_url)
+            response = requests.get(api_url, timeout=5)
 
             if response.status_code == 200:
                 release_data = response.json()
