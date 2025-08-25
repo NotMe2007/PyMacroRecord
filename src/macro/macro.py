@@ -3,9 +3,8 @@ from os import getlogin, system
 from sys import platform
 from threading import Thread
 from time import time, sleep
-from tkinter import Tk, Label, Frame, Button, PhotoImage, SUNKEN, W, BOTTOM, X, BOTH, LEFT, RIGHT, DISABLED, NORMAL
-from tkinter import messagebox
-from pynput.keyboard import Key # FUTURE SELF: DON'T REMOVE THIS!!
+from tkinter import messagebox, DISABLED, NORMAL
+from pynput.keyboard import Key  # FUTURE SELF: DON'T REMOVE THIS!!
 from pynput import mouse, keyboard
 from pynput.mouse import Button
 from utils.get_key_pressed import getKeyPressed
@@ -59,7 +58,7 @@ class Macro:
         self.macro_events = {"events": []}
         self.record = True
         self.time = time()
-        self.event_delta_time=0
+        self.event_delta_time = 0
         userSettings = self.user_settings.settings_dict
         self.showEventsOnStatusBar = userSettings["Recordings"]["Show_Events_On_Status_Bar"]
         if (
@@ -96,6 +95,7 @@ class Macro:
                     fps = 120
                 self._mouse_sampler_running = True
                 self._last_sampled_pos = None
+
                 def _sampler():
                     interval = 1.0 / fps
                     while self._mouse_sampler_running and self.record:
@@ -110,7 +110,9 @@ class Macro:
                                 self.__record_event({"type": "cursorMove", "x": x, "y": y})
                                 self._last_sampled_pos = pos
                                 if self.showEventsOnStatusBar:
-                                    self.main_app.status_text.configure(text=f"cursorMove {x} {y}")
+                                    self.main_app.status_text.configure(
+                                        text=f"cursorMove {x} {y}"
+                                    )
                         sleep(interval)
                 self._mouse_sampler_thread = Thread(target=_sampler, daemon=True)
                 self._mouse_sampler_thread.start()
@@ -327,17 +329,13 @@ class Macro:
                                         keyToPress = vk_nb[keyToPress]
                                     except Exception:
                                         keyToPress = None
-                            if self.playback:
-                                if keyToPress is not None:
-                                    if (
-                                            self.macro_events["events"][events]["pressed"]
-                                            == True
-                                    ):
-                                        self.keyboardControl.press(keyToPress)
-                                        if keyToPress not in keyToUnpress:
-                                            keyToUnpress.append(keyToPress)
-                                    else:
-                                        self.keyboardControl.release(keyToPress)
+                            if self.playback and keyToPress is not None:
+                                if self.macro_events["events"][events]["pressed"]:
+                                    self.keyboardControl.press(keyToPress)
+                                    if keyToPress not in keyToUnpress:
+                                        keyToUnpress.append(keyToPress)
+                                else:
+                                    self.keyboardControl.release(keyToPress)
                         except ValueError as e:
                             messagebox.showerror("Error",
                                                  f"Error during playback \"{e}\". Please open an issue on Github.")
@@ -355,7 +353,11 @@ class Macro:
                     sleep(userSettings["Playback"]["Repeat"]["Delay"])
 
         self.unPressEverything(keyToUnpress)
-        if userSettings["Playback"]["Repeat"]["Interval"] == 0 and userSettings["Playback"]["Repeat"]["For"] == 0 and repeat_count:
+        if (
+            userSettings["Playback"]["Repeat"]["Interval"] == 0
+            and userSettings["Playback"]["Repeat"]["For"] == 0
+            and repeat_count
+        ):
             self.stop_playback()
             if userSettings["Minimization"]["When_Playing"]:
                 self.main_app.deiconify()

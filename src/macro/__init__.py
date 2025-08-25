@@ -1,1 +1,1 @@
-from .macro import Macro
+from .macro import Macro  # noqa: F401

@@ -44,10 +44,24 @@ class RecordFileManagement:
                     **macroSettings,
                     **self.main_app.macro.macro_events
                 }
-                if compactJson:
-                    json_macroEvents = dumps(macroData, separators=(',', ':'))
+                # Support a versioned wrapper format for future extensibility.
+                # If the target filename ends with .pmr2 use the wrapper; otherwise keep legacy behavior.
+                use_wrapper = False
+                if self.main_app.current_file.lower().endswith('.pmr2'):
+                    use_wrapper = True
+
+                payload = macroData
+                if use_wrapper:
+                    wrapper = {"format": "pmr", "version": 2, "payload": payload}
+                    if compactJson:
+                        json_macroEvents = dumps(wrapper, separators=(',', ':'))
+                    else:
+                        json_macroEvents = dumps(wrapper, indent=4)
                 else:
-                    json_macroEvents = dumps(macroData, indent=4)
+                    if compactJson:
+                        json_macroEvents = dumps(payload, separators=(',', ':'))
+                    else:
+                        json_macroEvents = dumps(payload, indent=4)
                 current_file.write(json_macroEvents)
         else:
             self.save_macro_as()
@@ -82,7 +96,21 @@ class RecordFileManagement:
             )
             macroFile.close()
             with open(macroFile.name, "r", encoding="utf-8") as macroContent:
-                self.main_app.macro.import_record(load(macroContent))
+                # Detect versioned wrapper format. If wrapped, extract payload.
+                try:
+                    loaded = load(macroContent)
+                except Exception:
+                    loaded = None
+            if loaded is None:
+                return
+            # If wrapped format v2: {"format":"pmr","version":2,"payload":{...}}
+            if isinstance(loaded, dict) and loaded.get("format") == "pmr" and "payload" in loaded:
+                record_obj = loaded["payload"]
+            else:
+                # Legacy unwrapped format (direct dict of settings+events)
+                record_obj = loaded
+
+            self.main_app.macro.import_record(record_obj)
             self.main_app.macro_recorded = True
             self.main_app.macro_saved = True
             self.main_app.current_file = macroFile.name

@@ -34,17 +34,18 @@ class HotkeysManager:
         self.entry_to_change = entry_to_change
         self.entry_to_change.configure(text=self.main_app.text_content["options_menu"]["settings_menu"]["hotkeys_settings"]["please_key_text"])
 
-    def clear_hot_key(self, type, entry_to_change):
-        self.settings.change_settings("Hotkeys", type, None, [])
+    def clear_hot_key(self, hotkey_type, entry_to_change):
+        # avoid using the built-in name `type` and keep a clear local name
+        self.settings.change_settings("Hotkeys", hotkey_type, None, [])
         entry_to_change.configure(text="")
 
     def __win32_event_filter(self, msg, data):
         """Detect if key is pressed by real keyboard or pynput"""
         if data.flags == 0x10:
-            if self.macro.playback == True and self.macro.record == False:
+            # if playback is active and not recording, ignore this event
+            if self.macro.playback and not self.macro.record:
                 return False
-            else:
-                return True
+            return True
 
     def __on_press(self, key):
         userSettings = self.settings.settings_dict
@@ -91,7 +92,7 @@ class HotkeysManager:
                 self.hotkeys = []
                 self.hotkey_visible = []
 
-        if self.changeKey == False and self.main_app.prevent_record == False:
+        if not self.changeKey and not self.main_app.prevent_record:
             keyPressed = getKeyPressed(self.keyboard_listener, key)
             if keyPressed is not None:
                 if isinstance(keyPressed, str) and ">" in keyPressed:
@@ -110,36 +111,37 @@ class HotkeysManager:
                 by_hotkey = True
 
                 if (
-                        self.__is_hotkey_triggered(userSettings["Hotkeys"]["Record_Start"], self.hotkey_detection)
-                        and self.macro.record == False
-                        and self.macro.playback == False
+                    self.__is_hotkey_triggered(userSettings["Hotkeys"]["Record_Start"], self.hotkey_detection)
+                    and not self.macro.record
+                    and not self.macro.playback
                 ):
                     self.macro.start_record(by_hotkey)
 
                 elif (
-                        self.__is_hotkey_triggered(userSettings["Hotkeys"]["Record_Stop"], self.hotkey_detection)
-                        and self.macro.record == True
-                        and self.macro.playback == False
+                    self.__is_hotkey_triggered(userSettings["Hotkeys"]["Record_Stop"], self.hotkey_detection)
+                    and self.macro.record
+                    and not self.macro.playback
                 ):
                     self.macro.stop_record()
 
                 elif (
-                        self.__is_hotkey_triggered(userSettings["Hotkeys"]["Playback_Start"], self.hotkey_detection)
-                        and self.macro.record == False
-                        and self.macro.playback == False
-                        and self.main_app.macro_recorded == True
+                    self.__is_hotkey_triggered(userSettings["Hotkeys"]["Playback_Start"], self.hotkey_detection)
+                    and not self.macro.record
+                    and not self.macro.playback
+                    and self.main_app.macro_recorded
                 ):
                     self.macro.start_playback()
 
                 elif (
-                        self.__is_hotkey_triggered(userSettings["Hotkeys"]["Playback_Stop"], self.hotkey_detection)
-                        and self.macro.record == False
-                        and self.macro.playback == True
+                    self.__is_hotkey_triggered(userSettings["Hotkeys"]["Playback_Stop"], self.hotkey_detection)
+                    and not self.macro.record
+                    and self.macro.playback
                 ):
                     self.macro.stop_playback(by_hotkey)
 
     def __on_release(self, key):
-        if len(self.hotkey_detection) != 0:
+        # pop only if there is something to pop
+        if self.hotkey_detection:
             self.hotkey_detection.pop()
 
     def __is_hotkey_triggered(self, hotkey_config, detected_keys):

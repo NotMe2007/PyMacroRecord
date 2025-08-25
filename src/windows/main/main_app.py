@@ -28,12 +28,12 @@ if platform.lower() == "win32":
     from tkinter.ttk import Style
 
 def deepcopy_dict_missing_entries(dst:dict,src:dict):
-# recursively copy entries that are in src but not in dst
-    for k,v in src.items():
+    # recursively copy entries that are in src but not in dst
+    for k, v in src.items():
         if k not in dst:
             dst[k] = copy.deepcopy(v)
-        elif isinstance(v,dict):
-            deepcopy_dict_missing_entries(dst[k],v)
+        elif isinstance(v, dict):
+            deepcopy_dict_missing_entries(dst[k], v)
 
 class MainApp(Window):
     """Main windows of the application"""
@@ -152,7 +152,7 @@ class MainApp(Window):
             wantToSave = confirm_save(self)
             if wantToSave:
                 RecordFileManagement(self, self.menu).save_macro()
-            elif wantToSave == None:
+            elif wantToSave is None:
                 return
         if platform.lower() != "darwin":
             self.icon.stop()

@@ -17,6 +17,7 @@ Steps to reproduce the behavior:
 If applicable, add screenshots to help explain your problem.
 
 **The OS**
+Windows
 
 **Additional context**
 Add any other context about the problem here.

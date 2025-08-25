@@ -131,7 +131,7 @@ class UserSettings:
                 self.main_app.status_text.pack_forget()
             else:
                 self.main_app.status_text.pack(side=BOTTOM, fill=X)
-        if not category in self.settings_dict:
+        if category not in self.settings_dict:
             self.settings_dict[category] = ""
         if newValue is None:
             if option is None:
